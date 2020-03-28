@@ -1,4 +1,4 @@
-# dotData’s Model Factory
+# dotData’s exercise
 
 To test:
 
