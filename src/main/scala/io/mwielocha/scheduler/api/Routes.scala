@@ -10,6 +10,7 @@ import io.mwielocha.scheduler.runner.{Finish, Runner, Submit}
 import io.mwielocha.scheduler.tracker.{GetStatus, Tracker}
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.util.Timeout
+import com.typesafe.scalalogging.LazyLogging
 import io.mwielocha.scheduler.{counter, tracker}
 import io.mwielocha.scheduler.model.Job
 
@@ -18,7 +19,9 @@ import scala.concurrent.duration._
 class Routes(
   maxWorkers: Int = 10,
   maxHistory: Int = 10
-)(implicit val system: ActorSystem[Nothing]) extends ErrorAccumulatingCirceSupport {
+)(implicit val system: ActorSystem[Nothing]) extends ErrorAccumulatingCirceSupport with LazyLogging {
+
+  logger.info("Creating actor system with maxWorkers: {} and maxHistory: {}", maxWorkers, maxHistory)
 
   implicit val timeout: Timeout = 3.seconds
 

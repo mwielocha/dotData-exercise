@@ -6,6 +6,7 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.Http
 import akka.stream.{ActorMaterializer, Materializer}
 import akka.{Done, actor}
+import com.typesafe.config.ConfigFactory
 import io.mwielocha.scheduler.api.Routes
 
 import scala.concurrent.Await
@@ -22,13 +23,18 @@ object SchedulerMain {
       implicit val materializer: Materializer = ActorMaterializer()
       import system.executionContext
 
-      val routes = new Routes()
+      val config = ConfigFactory.load()
+
+      val routes = new Routes(
+        config.getInt("runner.max-workers"),
+        config.getInt("runner.max-history")
+      )
 
         for {
           _ <- Http().bindAndHandle(
             routes.routes(),
-            "localhost",
-            port = 8080
+            config.getString("http.host"),
+            config.getInt("http.port")
           )
         } yield Await.result(system.whenTerminated, Duration.Inf)
 
