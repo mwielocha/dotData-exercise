@@ -28,7 +28,11 @@ class Routes(
   private val trackerActor = system.systemActorOf(Tracker(), "tracker")
   private val counterActor = system.systemActorOf(Counter(), "counter")
   private val runnerActor = system.systemActorOf(Runner(
-    counterActor, trackerActor, maxWorkers, maxHistory), "runner")
+    counterActor,
+    trackerActor,
+    maxWorkers,
+    maxHistory
+  ), "runner")
 
   def routes(): server.Route =
     extractExecutionContext { implicit ec =>
