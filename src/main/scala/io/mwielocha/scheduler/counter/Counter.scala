@@ -1,11 +1,10 @@
-package io.mwielocha.scheduler.accountant
+package io.mwielocha.scheduler.counter
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import io.mwielocha.scheduler.model
-import io.mwielocha.scheduler.model.{Completed, Failed, Succeeded}
 
-object Accountant {
+object Counter {
 
   def apply(): Behavior[Protocol] =
     counting(model.Summary())

@@ -14,3 +14,6 @@ final case class GetStatus(id: Job.Id, replyTo: ActorRef[Reply]) extends Protoco
 
 final case class Working(id: Job.Id) extends Protocol
 final case class Done(id: Job.Id, status: FinishedStatus, replyTo: Worker) extends Protocol
+
+final case class Enqueued(id: Job.Id) extends Protocol
+final case class Dequeued(id: Job.Id) extends Protocol

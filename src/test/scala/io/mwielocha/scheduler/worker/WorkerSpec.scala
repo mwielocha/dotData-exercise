@@ -11,7 +11,7 @@ class WorkerSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
   "Worker" should {
 
     def verifyCorrectStatus(expected: FinishedStatus): Unit = {
-      val worker = testKit.spawn(Worker())
+      val worker = testKit.spawn(Worker(system.ignoreRef))
       val reponder = testKit.createTestProbe[runner.Protocol]()
       val id = Job.Id("id")
       worker ! Work(id, reponder.ref)

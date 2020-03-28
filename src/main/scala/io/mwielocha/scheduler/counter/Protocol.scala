@@ -1,4 +1,4 @@
-package io.mwielocha.scheduler.accountant
+package io.mwielocha.scheduler.counter
 
 import akka.actor.typed.ActorRef
 import io.mwielocha.scheduler.model.{FinishedStatus, Job}

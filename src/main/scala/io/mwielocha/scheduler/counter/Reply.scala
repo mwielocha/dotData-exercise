@@ -1,4 +1,4 @@
-package io.mwielocha.scheduler.accountant
+package io.mwielocha.scheduler.counter
 
 import io.mwielocha.scheduler.model
 
