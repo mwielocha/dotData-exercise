@@ -12,7 +12,7 @@ case class State(
 
   def statusOf(id: Job.Id): Status =
     pending.find(_.id == id)
-    .map(_ => Pending)
+    .map(_.status)
     .orElse {
       finished.find(_.id == id)
         .map(_.status)
@@ -31,6 +31,10 @@ case class State(
       finished
         .count(_.status == Succeeded)
     )
+
+  def enqueue(job: Job): State =
+    copy(pending = (pending :+ job)
+      .sortBy(_.priority).reverse)
 }
 
 object State {

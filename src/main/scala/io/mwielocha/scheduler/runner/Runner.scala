@@ -2,7 +2,7 @@ package io.mwielocha.scheduler.runner
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
-import io.mwielocha.scheduler.model.Job
+import io.mwielocha.scheduler.model.{Job, Pending}
 import io.mwielocha.scheduler.worker
 import io.mwielocha.scheduler.worker.Worker
 
@@ -14,7 +14,7 @@ object Runner {
   def apply(): Behavior[Protocol] =
     Behaviors.setup { ctx =>
       val workers = for(n <- 0 to maxWorkers) yield
-        ctx.spawn(Worker(), s"runner-$n")
+        ctx.spawn(Worker(), s"worker-$n")
       accepting(State(workers))
     }
 
@@ -38,16 +38,12 @@ object Runner {
           )
         )
 
-      case (_, Submit(id, _)) =>
-
-        val State(pending, running, finished, idle) = state
+      case (_, Submit(id, priotity)) =>
 
         accepting(
-          State(
-            pending :+ id,
-            running,
-            finished,
-            idle
+          state.enqueue(
+            Job(id, Pending, priotity
+            )
           )
         )
 
@@ -59,13 +55,20 @@ object Runner {
 
         accepting(state)
 
-      case (_, Finished(id, status, w)) =>
+      case (ctx, Finished(id, status, w)) =>
 
         val State(pending, running, finished, idle) = state
 
+        val newPending = pending match {
+          case head +: tail =>
+              ctx.self ! Submit(head.id, head.priority)
+            tail
+          case Nil => pending
+        }
+
         accepting(
           State(
-            pending,
+            newPending,
             running - id,
             (Job(id, status, 0) +: finished)
               .take(maxHistory),

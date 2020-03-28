@@ -6,7 +6,7 @@ case class Job(
   priority: Int
 )
 
-object Job extends Model[String, Job] {
+object Job extends Model[Job, String] {
 
   implicit val priorityOrdering: Ordering[Job] =
     Ordering.by[Job, Int](_.priority)
