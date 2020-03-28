@@ -1,8 +1,9 @@
 package io.mwielocha.scheduler.counter
 
-import io.mwielocha.scheduler.model
-
 sealed trait Reply
 final case class Summary(
-  summary: model.Summary
+  failed: Int = 0,
+  pending: Int = 0,
+  running: Int = 0,
+  succeeded: Int = 0
 ) extends Reply

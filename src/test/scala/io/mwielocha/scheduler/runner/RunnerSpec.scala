@@ -4,11 +4,8 @@ package io.mwielocha.scheduler.runner
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import io.mwielocha.scheduler.counter.{Counter, GetSummary, Summary}
 import io.mwielocha.scheduler.model.{Job, Pending, Running, Succeeded}
-import io.mwielocha.scheduler.model
+import io.mwielocha.scheduler.{counter, tracker}
 import io.mwielocha.scheduler.tracker.{GetStatus, Status, Tracker}
-import io.mwielocha.scheduler.counter
-import io.mwielocha.scheduler.runner
-import io.mwielocha.scheduler.tracker
 import org.scalatest.wordspec.AnyWordSpecLike
 
 class RunnerSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
@@ -24,7 +21,7 @@ class RunnerSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       runnerActor ! Submit(id, 0)
       eventually {
         trackerActor ! GetStatus(id, responder.ref)
-        responder.expectMessage(Status(id, Running))
+        responder.expectMessage(Status(Running))
       }
     }
 
@@ -38,14 +35,14 @@ class RunnerSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       runnerActor ! Submit(id, 0)
       eventually {
         trackerActor ! GetStatus(id, trackerResponder.ref)
-        trackerResponder.expectMessage(Status(id, Running))
+        trackerResponder.expectMessage(Status(Running))
       }
       runnerActor ! Finish(id, Succeeded)
       eventually {
         trackerActor ! GetStatus(id, trackerResponder.ref)
-        trackerResponder.expectMessage(Status(id, Succeeded))
+        trackerResponder.expectMessage(Status(Succeeded))
         counterActor ! GetSummary(counterResponder.ref)
-        counterResponder.expectMessage(Summary(model.Summary(succeeded = 1)))
+        counterResponder.expectMessage(Summary(succeeded = 1))
       }
     }
 
@@ -64,14 +61,14 @@ class RunnerSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       eventually {
         for (id <- running) {
           trackerActor ! GetStatus(id, trackerResponder.ref)
-          trackerResponder.expectMessage(Status(id, Running))
+          trackerResponder.expectMessage(Status(Running))
         }
       }
 
       eventually {
         for (id <- pending) {
           trackerActor ! GetStatus(id, trackerResponder.ref)
-          trackerResponder.expectMessage(Status(id, Pending))
+          trackerResponder.expectMessage(Status(Pending))
         }
       }
 
@@ -79,13 +76,13 @@ class RunnerSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
 
       eventually {
         trackerActor ! GetStatus(running.head, trackerResponder.ref)
-        trackerResponder.expectMessage(Status(running.head, Succeeded))
+        trackerResponder.expectMessage(Status(Succeeded))
         trackerActor ! GetStatus(pending.head, trackerResponder.ref)
-        trackerResponder.expectMessage(Status(pending.head, Pending))
+        trackerResponder.expectMessage(Status(Pending))
         trackerActor ! GetStatus(pending.last, trackerResponder.ref)
-        trackerResponder.expectMessage(Status(pending.last, Running))
+        trackerResponder.expectMessage(Status(Running))
         counterActor ! GetSummary(counterResponder.ref)
-        counterResponder.expectMessage(Summary(model.Summary(succeeded = 1, running = 2, pending = 1)))
+        counterResponder.expectMessage(Summary(succeeded = 1, running = 2, pending = 1))
       }
     }
 
@@ -102,7 +99,7 @@ class RunnerSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
 
       eventually {
         counterActor ! GetSummary(counterResponder.ref)
-        counterResponder.expectMessage(Summary(model.Summary(succeeded = total)))
+        counterResponder.expectMessage(Summary(succeeded = total))
       }
 
     }

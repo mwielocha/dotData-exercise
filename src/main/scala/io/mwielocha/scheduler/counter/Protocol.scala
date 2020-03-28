@@ -10,4 +10,4 @@ final case class Update(
   running: Int = 0,
   succeeded: Int = 0
 ) extends Protocol
-final case class GetSummary(replyTo: ActorRef[Reply]) extends Protocol
+final case class GetSummary(replyTo: ActorRef[Summary]) extends Protocol

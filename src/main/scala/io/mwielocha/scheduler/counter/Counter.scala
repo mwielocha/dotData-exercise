@@ -7,14 +7,14 @@ import io.mwielocha.scheduler.model
 object Counter {
 
   def apply(): Behavior[Protocol] =
-    counting(model.Summary())
+    counting(Summary())
 
-  def counting(summary: model.Summary): Behavior[Protocol] =
+  def counting(summary: Summary): Behavior[Protocol] =
     Behaviors.receive {
 
       case (_, Update(failed, pending, running, succeeded)) =>
         counting(
-          model.Summary(
+          Summary(
             summary.failed + failed,
             summary.pending + pending,
             summary.running + running,
@@ -23,7 +23,7 @@ object Counter {
         )
 
       case (_, GetSummary(replyTo)) =>
-        replyTo ! Summary(summary)
+        replyTo ! summary
 
         Behaviors.same
     }

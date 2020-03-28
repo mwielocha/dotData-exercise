@@ -41,7 +41,6 @@ object Tracker {
       case (_, GetStatus(id, replyTo)) =>
 
         replyTo ! Status(
-          id,
           if(running(id)) Running
           else if(pending(id)) Pending
           else completed.find(_.id == id)
