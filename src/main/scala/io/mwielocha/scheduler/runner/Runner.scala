@@ -2,31 +2,43 @@ package io.mwielocha.scheduler.runner
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
-import io.circe.Decoder.state
+import io.mwielocha.scheduler.accountant.{Accountant, Update}
 import io.mwielocha.scheduler.model._
+import io.mwielocha.scheduler.queue.{Dequeue, Enqueue, Queue}
 import io.mwielocha.scheduler.worker
 import io.mwielocha.scheduler.worker.Worker
 
 object Runner {
 
-
-  private val maxHistory = 10
-  private val maxWorkers = 10
-
-  def apply(): Behavior[Protocol] =
+  def apply(accountant: Accountant, maxWorkers: Int = 10, maxHistory: Int = 10): Behavior[Protocol] =
     Behaviors.setup { ctx =>
       val workers = for(n <- 0 until maxWorkers) yield
         ctx.spawn(Worker(), s"worker-$n")
       ctx.log.info("Created {} workers, now accepting jobs...", workers.size)
-      accepting(Seq.empty, Set.empty, Seq.empty, Workers(workers.toSet, Set.empty))
+      val queue = ctx.spawn(Queue(), "queue")
+      accepting(
+        Set.empty,
+        Set.empty,
+        Seq.empty,
+        queue,
+        accountant,
+        Workers(
+          workers.toSet,
+          Set.empty
+        ),
+        maxHistory
+      )
     }
 
 
   def accepting(
-    pending: Seq[Submitted],
+    pending: Set[Job.Id],
     running: Set[Job.Id],
-    finished: Seq[Completed],
-    workers: Workers
+    completed: Seq[Completed],
+    queue: Queue,
+    accountant: Accountant,
+    workers: Workers,
+    maxHistory: Int
   ): Behavior[Protocol] =
 
     Behaviors.receive {
@@ -36,25 +48,34 @@ object Runner {
         val Workers(idle, busy) = workers
         val w = idle.head
         idle.head ! worker.Work(id, ctx.self)
+        accountant ! Update(running = 1)
 
         accepting(
           pending,
           running + id,
-          finished,
+          completed,
+          queue,
+          accountant,
           Workers(
             idle - w,
             busy + w
-          )
+          ),
+          maxHistory
         )
 
       case (_, Submit(id, priotity)) =>
 
+        queue ! Enqueue(id, priotity)
+        accountant ! Update(pending = 1)
+
         accepting(
-          (pending :+ Submitted(id, priotity))
-            .sorted,
+          pending + id,
           running,
-          finished,
-          workers
+          completed,
+          queue,
+          accountant,
+          workers,
+          maxHistory
         )
 
       case (ctx, Working(id)) =>
@@ -72,37 +93,36 @@ object Runner {
 
         val Workers(idle, busy) = workers
 
-        val newPending = pending match {
-          case head +: tail =>
-              ctx.self ! Submit(head.id, head.priority)
-            tail
-          case Nil => pending
-        }
+        queue ! Dequeue(ctx.self)
+
+        accountant ! Update(
+          running = -1,
+          failed = if(status == Failed) 1 else 0,
+          succeeded = if(status == Succeeded) 1 else 0
+        )
 
         accepting(
-          newPending,
+          pending,
           running - id,
-          (Completed(id, status) +: finished)
+          (Completed(id, status) +: completed)
             .take(maxHistory),
+          queue,
+          accountant,
           Workers(
             idle + w,
             busy - w
-          )
+          ),
+          maxHistory
         )
 
       case (_, GetStatus(id, replyTo)) =>
 
         replyTo ! Status (
-          if(running.contains(id)) Running
-          else if(pending.exists(_.id == id)) Pending
-          else finished.find(_.id == id).map(_.status).getOrElse(Unknown)
+          if(running(id)) Running
+          else if(pending(id)) Pending
+          else completed.find(_.id == id).map(_.status)
+            .getOrElse(Unknown)
         )
-
-        Behaviors.same
-
-      case (_, GetSummary(replyTo)) =>
-
-
 
         Behaviors.same
 
