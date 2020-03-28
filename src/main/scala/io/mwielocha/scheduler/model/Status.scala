@@ -1,6 +1,8 @@
 package io.mwielocha.scheduler.model
 
-sealed trait Status
+sealed trait Status {
+  def is(other: Status): Boolean = this == other
+}
 sealed trait FinishedStatus extends Status
 
 case object Pending extends Status
