@@ -2,11 +2,13 @@ package io.mwielocha.scheduler.runner
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
-import io.mwielocha.scheduler.model.{Job, Pending}
+import io.circe.Decoder.state
+import io.mwielocha.scheduler.model._
 import io.mwielocha.scheduler.worker
 import io.mwielocha.scheduler.worker.Worker
 
 object Runner {
+
 
   private val maxHistory = 10
   private val maxWorkers = 10
@@ -16,54 +18,59 @@ object Runner {
       val workers = for(n <- 0 until maxWorkers) yield
         ctx.spawn(Worker(), s"worker-$n")
       ctx.log.info("Created {} workers, now accepting jobs...", workers.size)
-      accepting(State(workers))
+      accepting(Seq.empty, Set.empty, Seq.empty, Workers(workers.toSet, Set.empty))
     }
 
 
-  def accepting(state: State): Behavior[Protocol] =
+  def accepting(
+    pending: Seq[Submitted],
+    running: Set[Job.Id],
+    finished: Seq[Completed],
+    workers: Workers
+  ): Behavior[Protocol] =
 
     Behaviors.receive {
 
-      case (ctx, Submit(id, _)) if state.workers.nonEmpty =>
+      case (ctx, Submit(id, _)) if workers.idle.nonEmpty =>
 
-        val State(pending, running, finished, w +: idle) = state
-
-        w ! worker.Execute(id, ctx.self)
+        val Workers(idle, busy) = workers
+        val w = idle.head
+        idle.head ! worker.Work(id, ctx.self)
 
         accepting(
-          State(
-            pending,
-            running + (id -> w),
-            finished,
-            idle
+          pending,
+          running + id,
+          finished,
+          Workers(
+            idle - w,
+            busy + w
           )
         )
 
       case (_, Submit(id, priotity)) =>
 
         accepting(
-          state.enqueue(
-            Job(id, Pending, priotity
-            )
-          )
+          (pending :+ Submitted(id, priotity))
+            .sorted,
+          running,
+          finished,
+          workers
         )
 
-      case (ctx, Executing(id)) =>
+      case (ctx, Working(id)) =>
         ctx.log.info("Execution started: {}", id)
 
-        accepting(state)
+        Behaviors.same
 
       case (ctx, Finish(id, status)) =>
 
-        val State(_, running, _, _) = state
+        for(w <- workers.all) w ! worker.Finish(id, status, ctx.self)
 
-        for(w <- running.get(id)) w ! worker.Finish(status, ctx.self)
+        Behaviors.same
 
-        accepting(state)
+      case (ctx, Done(id, status, w)) =>
 
-      case (ctx, Finished(id, status, w)) =>
-
-        val State(pending, running, finished, idle) = state
+        val Workers(idle, busy) = workers
 
         val newPending = pending match {
           case head +: tail =>
@@ -73,26 +80,31 @@ object Runner {
         }
 
         accepting(
-          State(
-            newPending,
-            running - id,
-            (Job(id, status, 0) +: finished)
-              .take(maxHistory),
-            idle :+ w
+          newPending,
+          running - id,
+          (Completed(id, status) +: finished)
+            .take(maxHistory),
+          Workers(
+            idle + w,
+            busy - w
           )
         )
 
       case (_, GetStatus(id, replyTo)) =>
 
-        replyTo ! Status(state.statusOf(id))
+        replyTo ! Status (
+          if(running.contains(id)) Running
+          else if(pending.exists(_.id == id)) Pending
+          else finished.find(_.id == id).map(_.status).getOrElse(Unknown)
+        )
 
-        accepting(state)
+        Behaviors.same
 
       case (_, GetSummary(replyTo)) =>
 
-        replyTo ! Summary(state.summary)
 
-        accepting(state)
+
+        Behaviors.same
 
     }
 }

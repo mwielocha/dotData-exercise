@@ -1,16 +1,20 @@
 package io.mwielocha.scheduler.model
 
-case class Job(
+sealed trait Job
+
+final case class Submitted(
   id: Job.Id,
-  status: Status,
   priority: Int
-)
+) extends Job
 
-object Job extends Model[Job, String] {
+final case class Completed(
+  id: Job.Id,
+  status: FinishedStatus
+) extends Job
 
-  implicit val priorityOrdering: Ordering[Job] =
-    Ordering.by[Job, Int](_.priority)
+object Job extends Model[Job, String]
 
-  def apply(id: Job.Id, priority: Int): Job =
-    Job(id, Pending, priority)
+object Submitted {
+  implicit val priorityOrdering: Ordering[Submitted] =
+    Ordering.by[Submitted, Int](_.priority).reverse
 }

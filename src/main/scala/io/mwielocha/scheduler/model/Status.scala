@@ -9,3 +9,4 @@ case object Unknown extends Status
 
 case object Failed extends FinishedStatus
 case object Succeeded extends FinishedStatus
+
