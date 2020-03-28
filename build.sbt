@@ -12,6 +12,7 @@ mainClass in (Compile, run) := Some("io.mwielocha.scheduler.SchedulerMain")
 
 val akkaVersion = "2.6.4"
 val circeVersion = "0.12.3"
+val logbackVersion = "1.2.3"
 val akkaHttpVersion = "10.1.11"
 val shapelessVersion = "2.3.3"
 val scalatestVersion = "3.1.1"
@@ -25,6 +26,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion,
   "de.heikoseeberger" %% "akka-http-circe" % akkaHttpCirceVersion,
+  "ch.qos.logback" % "logback-classic" % logbackVersion,
   "org.scalatest" %% "scalatest" % scalatestVersion % Test,
   "com.typesafe.akka" %% "akka-actor-testkit-typed" % akkaVersion % Test,
 )

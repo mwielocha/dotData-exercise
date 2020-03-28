@@ -13,8 +13,9 @@ object Runner {
 
   def apply(): Behavior[Protocol] =
     Behaviors.setup { ctx =>
-      val workers = for(n <- 0 to maxWorkers) yield
+      val workers = for(n <- 0 until maxWorkers) yield
         ctx.spawn(Worker(), s"worker-$n")
+      ctx.log.info("Created {} workers, now accepting jobs...", workers.size)
       accepting(State(workers))
     }
 
@@ -46,6 +47,11 @@ object Runner {
             )
           )
         )
+
+      case (ctx, Executing(id)) =>
+        ctx.log.info("Execution started: {}", id)
+
+        accepting(state)
 
       case (ctx, Finish(id, status)) =>
 

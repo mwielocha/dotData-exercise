@@ -4,7 +4,7 @@ import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import io.mwielocha.scheduler.model.{Failed, FinishedStatus, Job, Succeeded}
 import io.mwielocha.scheduler.runner
 import io.mwielocha.scheduler.runner.{Executing, Finished}
-import org.scalatest.wordspec.{AnyWordSpec, AnyWordSpecLike}
+import org.scalatest.wordspec.AnyWordSpecLike
 
 class WorkerSpec extends ScalaTestWithActorTestKit with AnyWordSpecLike {
 
